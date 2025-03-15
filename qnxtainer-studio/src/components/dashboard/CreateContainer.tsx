@@ -17,10 +17,10 @@ const CreateContainer: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="resources">Resources</TabsTrigger>
-              <TabsTrigger value="networking">Networking</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 bg-muted">
+              <TabsTrigger value="general" className="data-[state=active]:bg-qnx data-[state=active]:text-white">General</TabsTrigger>
+              <TabsTrigger value="resources" className="data-[state=active]:bg-qnx data-[state=active]:text-white">Resources</TabsTrigger>
+              <TabsTrigger value="networking" className="data-[state=active]:bg-qnx data-[state=active]:text-white">Networking</TabsTrigger>
             </TabsList>
             <TabsContent value="general" className="space-y-4 mt-4">
               <div className="grid w-full items-center gap-4">
@@ -52,14 +52,14 @@ const CreateContainer: React.FC = () => {
                 <div className="space-y-2">
                   <Label>CPU Limit (%)</Label>
                   <div className="flex items-center space-x-4">
-                    <Slider defaultValue={[50]} max={100} step={1} className="flex-1" />
+                    <Slider defaultValue={[50]} max={100} step={1} className="flex-1 [&>span]:bg-qnx" />
                     <span className="w-12 text-center">50%</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Memory Limit (MB)</Label>
                   <div className="flex items-center space-x-4">
-                    <Slider defaultValue={[512]} max={2048} step={64} className="flex-1" />
+                    <Slider defaultValue={[512]} max={2048} step={64} className="flex-1 [&>span]:bg-qnx" />
                     <span className="w-12 text-center">512</span>
                   </div>
                 </div>

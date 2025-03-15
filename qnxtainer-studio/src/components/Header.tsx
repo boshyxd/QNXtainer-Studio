@@ -21,28 +21,28 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-card border-b border-border sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center">
           <h1 className="text-2xl font-bold text-qnx mr-6 cursor-pointer" onClick={() => onNavigate && onNavigate('dashboard')}>QNXtainer</h1>
           <NavigationMenu>
             <NavigationMenuList>
               <NavigationMenuItem>
-                <NavigationMenuTrigger className="text-gray-700 hover:text-qnx">Containers</NavigationMenuTrigger>
+                <NavigationMenuTrigger className="text-foreground hover:text-qnx">Containers</NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <ul className="grid gap-3 p-4 w-[400px]">
+                  <ul className="grid gap-3 p-4 w-[400px] bg-card border border-border">
                     <li>
-                      <NavigationMenuLink className="block p-2 hover:bg-gray-100 rounded cursor-pointer" onClick={() => onNavigate && onNavigate('dashboard')}>
+                      <NavigationMenuLink className="block p-2 hover:bg-muted rounded cursor-pointer" onClick={() => onNavigate && onNavigate('dashboard')}>
                         All Containers
                       </NavigationMenuLink>
                     </li>
                     <li>
-                      <NavigationMenuLink className="block p-2 hover:bg-gray-100 rounded cursor-pointer">
+                      <NavigationMenuLink className="block p-2 hover:bg-muted rounded cursor-pointer">
                         Running
                       </NavigationMenuLink>
                     </li>
                     <li>
-                      <NavigationMenuLink className="block p-2 hover:bg-gray-100 rounded cursor-pointer">
+                      <NavigationMenuLink className="block p-2 hover:bg-muted rounded cursor-pointer">
                         Stopped
                       </NavigationMenuLink>
                     </li>
@@ -50,16 +50,16 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                 </NavigationMenuContent>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <NavigationMenuTrigger className="text-gray-700 hover:text-qnx">Images</NavigationMenuTrigger>
+                <NavigationMenuTrigger className="text-foreground hover:text-qnx">Images</NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <ul className="grid gap-3 p-4 w-[400px]">
+                  <ul className="grid gap-3 p-4 w-[400px] bg-card border border-border">
                     <li>
-                      <NavigationMenuLink className="block p-2 hover:bg-gray-100 rounded cursor-pointer">
+                      <NavigationMenuLink className="block p-2 hover:bg-muted rounded cursor-pointer">
                         Local Images
                       </NavigationMenuLink>
                     </li>
                     <li>
-                      <NavigationMenuLink className="block p-2 hover:bg-gray-100 rounded cursor-pointer">
+                      <NavigationMenuLink className="block p-2 hover:bg-muted rounded cursor-pointer">
                         Registry
                       </NavigationMenuLink>
                     </li>
@@ -67,12 +67,12 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                 </NavigationMenuContent>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <NavigationMenuLink className="text-gray-700 hover:text-qnx cursor-pointer">
+                <NavigationMenuLink className="text-foreground hover:text-qnx cursor-pointer">
                   Networks
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <NavigationMenuLink className="text-gray-700 hover:text-qnx cursor-pointer">
+                <NavigationMenuLink className="text-foreground hover:text-qnx cursor-pointer">
                   Volumes
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -98,7 +98,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                 </svg>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="bg-card border-border">
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuItem>Help</DropdownMenuItem>
               <DropdownMenuItem>About</DropdownMenuItem>

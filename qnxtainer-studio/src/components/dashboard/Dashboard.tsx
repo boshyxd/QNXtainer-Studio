@@ -30,7 +30,7 @@ const Dashboard: React.FC = () => {
             <CardDescription>Active containers</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{containers.filter(c => c.status === 'running').length}</div>
+            <div className="text-2xl font-bold text-qnx">{containers.filter(c => c.status === 'running').length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -54,16 +54,16 @@ const Dashboard: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium">CPU Usage</span>
-                <span className="text-sm text-gray-500">45%</span>
+                <span className="text-sm text-muted-foreground">45%</span>
               </div>
-              <Progress value={45} className="h-2" />
+              <Progress value={45} className="h-2 bg-muted [&>div]:bg-qnx" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium">Memory Usage</span>
-                <span className="text-sm text-gray-500">512MB / 2GB</span>
+                <span className="text-sm text-muted-foreground">512MB / 2GB</span>
               </div>
-              <Progress value={25} className="h-2" />
+              <Progress value={25} className="h-2 bg-muted [&>div]:bg-qnx" />
             </div>
           </div>
         </CardContent>
@@ -92,7 +92,7 @@ const Dashboard: React.FC = () => {
                   <TableCell>
                     <Badge 
                       variant={container.status === 'running' ? 'default' : 'secondary'}
-                      className={container.status === 'running' ? 'bg-green-500' : 'bg-gray-500'}
+                      className={container.status === 'running' ? 'bg-qnx hover:bg-qnx-dark' : 'bg-muted hover:bg-muted/80'}
                     >
                       {container.status}
                     </Badge>
