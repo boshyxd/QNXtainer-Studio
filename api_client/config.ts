@@ -1,8 +1,8 @@
 import { ApiConfig } from './index';
 
 const defaultConfig: ApiConfig = {
-  serverUrl: 'localhost',
-  port: 8080
+  serverUrl: 'https://kontrakti.com',
+  port: 80
 };
 
 export function loadApiConfig(): ApiConfig {

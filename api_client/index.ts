@@ -33,7 +33,7 @@ class QNXtainerApiClient {
   private baseUrl: string;
   
   constructor(config: ApiConfig) {
-    this.baseUrl = `http://${config.serverUrl}:${config.port}`;
+    this.baseUrl = `${config.serverUrl}`;
   }
 
   async getState(): Promise<ServerState> {
@@ -54,7 +54,7 @@ class QNXtainerApiClient {
   async uploadImage(imageFile: File, imageName: string, imageTag: string = 'latest'): Promise<{ status: string }> {
     try {
       const formData = new FormData();
-      formData.append('image', imageFile);
+      formData.append('file', imageFile);
       formData.append('name', imageName);
       formData.append('tag', imageTag);
       
