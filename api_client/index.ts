@@ -76,15 +76,14 @@ class QNXtainerApiClient {
 
   async createContainer(imageId: string, name: string): Promise<{ status: string, container_id: string }> {
     try {
+      const formData = new FormData();
+      formData.append("image_id", imageId);
+      formData.append("name", name);
+
       const response = await fetch(`${this.baseUrl}/create-container`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image_id: imageId,
-          name: name,
-        }),
+        mode: 'cors',
+        body: formData,
       });
       
       if (!response.ok) {
@@ -94,7 +93,7 @@ class QNXtainerApiClient {
       
       return await response.json();
     } catch (error) {
-      console.error('Failed to create container:', error);
+        console.error('Failed to create container:', error);
       throw error;
     }
   }

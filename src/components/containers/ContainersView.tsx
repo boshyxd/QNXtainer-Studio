@@ -23,18 +23,17 @@ const initialContainers = [
 interface Container {
   id: string;
   name: string;
-  status: 'running' | 'stopped';
+  status: 'running' | 'stopped' | 'prepared';
   cpu: number;
   memory: number;
   created: string;
   appType: string;
 }
 
-interface NewApp {
+interface NewContainer {
   name: string;
   description: string;
-  file: File | null;
-  sourceCode: string;
+  id: string;
 }
 
 const ContainersView: React.FC = () => {
@@ -65,11 +64,10 @@ const ContainersView: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'running' | 'stopped'>('all');
   const [selectedContainers, setSelectedContainers] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [newApp, setNewApp] = useState<NewApp>({
+  const [newContainer, setNewContainer] = useState<NewContainer>({
     name: '',
     description: '',
-    file: null,
-    sourceCode: ''
+    id: '',
   });
   const [uploadMethod, setUploadMethod] = useState<'tarball' | 'editor'>('tarball');
   const [formErrors, setFormErrors] = useState<{
@@ -170,15 +168,6 @@ const ContainersView: React.FC = () => {
     }, 1000);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setNewApp({
-        ...newApp,
-        file: e.target.files[0]
-      });
-    }
-  };
-
   const validateForm = () => {
     const errors: {
       name?: string;
@@ -186,18 +175,10 @@ const ContainersView: React.FC = () => {
       sourceCode?: string;
     } = {};
     
-    if (!newApp.name.trim()) {
+    if (!newContainer.name.trim()) {
       errors.name = "Container name is required";
-    } else if (!/^[a-zA-Z0-9_-]+$/.test(newApp.name)) {
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(newContainer.name)) {
       errors.name = "Name can only contain letters, numbers, hyphens and underscores";
-    }
-    
-    if (uploadMethod === 'tarball' && !newApp.file) {
-      errors.file = "Please upload an application file";
-    }
-    
-    if (uploadMethod === 'editor' && !newApp.sourceCode.trim()) {
-      errors.sourceCode = "Source code is required";
     }
     
     setFormErrors(errors);
@@ -212,12 +193,12 @@ const ContainersView: React.FC = () => {
     try {
       if (isConnected && serverState && serverState.images.length > 0) {
         const imageId = serverState.images[0].id;
-        await createContainer(imageId, newApp.name);
-        toast.success(`Container "${newApp.name}" created successfully`);
+        await createContainer(imageId, newContainer.name);
+        toast.success(`Container "${newContainer.name}" created successfully`);
       } else {
-        const newContainer: Container = {
+        const newCont: Container = {
           id: `c${Math.floor(Math.random() * 1000)}`,
-          name: newApp.name,
+          name: newContainer.name,
           status: 'stopped',
           cpu: 0,
           memory: 0,
@@ -225,16 +206,15 @@ const ContainersView: React.FC = () => {
           appType: uploadMethod === 'editor' ? 'C Program' : 'Container Image'
         };
         
-        setContainers(prev => [...prev, newContainer]);
-        toast.success(`Container "${newApp.name}" created (mock)`);
+        setContainers(prev => [...prev, newCont]);
+        toast.success(`Container "${newContainer.name}" created (mock)`);
       }
       
       setIsCreateDialogOpen(false);
-      setNewApp({
+      setNewContainer({
         name: '',
         description: '',
-        file: null,
-        sourceCode: ''
+        id: ''
       });
       setFormErrors({});
     } catch (error) {
@@ -250,10 +230,10 @@ const ContainersView: React.FC = () => {
     containers.find(c => c.id === id)?.status === 'stopped'
   );
 
-  const isCreateButtonDisabled = 
-    (uploadMethod === 'tarball' && (!newApp.name || !newApp.file)) || 
-    (uploadMethod === 'editor' && (!newApp.name || !newApp.sourceCode)) ||
-    isLoading;
+  const isPreparedSelected = selectedContainers.some(id => 
+    containers.find(c => c.id === id)?.status === 'prepared'
+  );
+
 
   const handleStartContainer = async (containerId: string) => {
     try {
@@ -352,7 +332,7 @@ const ContainersView: React.FC = () => {
           size="sm" 
           variant="outline" 
           className="bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20 hover:text-green-600"
-          disabled={!hasStoppedSelected || isLoading}
+          disabled={!(!hasRunningSelected || isPreparedSelected) || isLoading}
           onClick={() => handleStartContainer(selectedContainers[0])}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -376,7 +356,7 @@ const ContainersView: React.FC = () => {
           size="sm" 
           variant="outline" 
           className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:text-red-600"
-          disabled={selectedContainers.length === 0 || isLoading}
+          disabled={(!hasRunningSelected || isPreparedSelected) || isLoading}
           onClick={() => handleAction('kill')}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -403,7 +383,7 @@ const ContainersView: React.FC = () => {
           size="sm" 
           variant="outline" 
           className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 hover:text-blue-600"
-          disabled={selectedContainers.length !== 1 || isLoading}
+          disabled={!hasRunningSelected || isLoading}
           onClick={() => handleAction('logs')}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -514,22 +494,12 @@ const ContainersView: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Create Containerized Application</DialogTitle>
             <DialogDescription>
-              Upload your C/C++ application to be containerized and run on QNX.
+              After uploading your C/C++ application image on QNX, you can start it here by giving its id.
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue="tarball" className="w-full" onValueChange={(value) => setUploadMethod(value as 'tarball' | 'editor')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="tarball">Upload Tarball</TabsTrigger>
-              <TabsTrigger value="editor">Code Editor</TabsTrigger>
-            </TabsList>
-            
+          <Tabs defaultValue="tarball" className="w-full" onValueChange={(value) => setUploadMethod(value as 'tarball' | 'editor')}>            
             <TabsContent value="tarball" className="space-y-4 mt-4">
-              <Alert>
-                <AlertDescription>
-                  Upload a tarball (.tar.gz) containing your C/C++ application source code. The server will compile and containerize it.
-                </AlertDescription>
-              </Alert>
               
               <div className="grid gap-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -541,9 +511,9 @@ const ContainersView: React.FC = () => {
                       id="app-name" 
                       placeholder="e.g., hello-world" 
                       className={formErrors.name ? "border-red-500" : ""}
-                      value={newApp.name}
+                      value={newContainer.name}
                       onChange={(e) => {
-                        setNewApp({...newApp, name: e.target.value});
+                        setNewContainer({...newContainer, name: e.target.value});
                         if (formErrors.name) {
                           setFormErrors({...formErrors, name: undefined});
                         }
@@ -558,45 +528,20 @@ const ContainersView: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="app-description" className="text-right">
-                    Description
-                  </Label>
-                  <div className="col-span-3">
-                    <Input 
-                      id="app-description" 
-                      placeholder="Optional description" 
-                      value={newApp.description}
-                      onChange={(e) => setNewApp({...newApp, description: e.target.value})}
-                    />
-                  </div>
-                </div>
-                
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label htmlFor="app-file" className="text-right pt-2">
-                    Application Tarball
+                    Image ID
                   </Label>
                   <div className="col-span-3 space-y-1">
                     <Input 
-                      id="app-file" 
-                      type="file" 
-                      accept=".tar,.tar.gz,.tgz,.c,.cpp,.h,.hpp"
-                      className={formErrors.file ? "border-red-500" : ""}
-                      onChange={(e) => {
-                        handleFileChange(e);
-                        if (formErrors.file) {
-                          setFormErrors({...formErrors, file: undefined});
-                        }
-                      }}
+                      id="image-id" 
+                      placeholder="ID" 
+                      value={newContainer.description}
+                      onChange={(e) => setNewContainer({...newContainer, description: e.target.value})}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Accepted formats: .tar, .tar.gz, .tgz, .c, .cpp, .h, .hpp
+                      See Images for a list of images
                     </p>
-                    {newApp.file && (
-                      <p className="text-xs text-green-500 mt-1">
-                        Selected file: {newApp.file.name} ({Math.round(newApp.file.size / 1024)} KB)
-                      </p>
-                    )}
                     {formErrors.file && (
                       <p className="text-xs text-red-500 flex items-center">
                         <AlertCircle className="h-3 w-3 mr-1" />
@@ -615,32 +560,6 @@ const ContainersView: React.FC = () => {
                 </AlertDescription>
               </Alert>
               
-              <div className="grid gap-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="editor-app-name" className="text-right">
-                    Application Name
-                  </Label>
-                  <div className="col-span-3 space-y-1">
-                    <Input 
-                      id="editor-app-name" 
-                      placeholder="e.g., hello-world" 
-                      className={formErrors.name ? "border-red-500" : ""}
-                      value={newApp.name}
-                      onChange={(e) => {
-                        setNewApp({...newApp, name: e.target.value});
-                        if (formErrors.name) {
-                          setFormErrors({...formErrors, name: undefined});
-                        }
-                      }}
-                    />
-                    {formErrors.name && (
-                      <p className="text-xs text-red-500 flex items-center">
-                        <AlertCircle className="h-3 w-3 mr-1" />
-                        {formErrors.name}
-                      </p>
-                    )}
-                  </div>
-                </div>
                 
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="editor-app-description" className="text-right">
@@ -650,38 +569,12 @@ const ContainersView: React.FC = () => {
                     <Input 
                       id="editor-app-description" 
                       placeholder="Optional description" 
-                      value={newApp.description}
-                      onChange={(e) => setNewApp({...newApp, description: e.target.value})}
+                      value={newContainer.description}
+                      onChange={(e) => setNewContainer({...newContainer, description: e.target.value})}
                     />
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-4 items-start gap-4">
-                  <Label htmlFor="source-code" className="text-right pt-2">
-                    Source Code
-                  </Label>
-                  <div className="col-span-3 space-y-1">
-                    <Textarea 
-                      id="source-code" 
-                      placeholder={'#include <stdio.h>\n\nint main() {\n    printf("Hello, QNX!\\n");\n    return 0;\n}'}
-                      className={`font-mono h-64 ${formErrors.sourceCode ? "border-red-500" : ""}`}
-                      value={newApp.sourceCode}
-                      onChange={(e) => {
-                        setNewApp({...newApp, sourceCode: e.target.value});
-                        if (formErrors.sourceCode) {
-                          setFormErrors({...formErrors, sourceCode: undefined});
-                        }
-                      }}
-                    />
-                    {formErrors.sourceCode && (
-                      <p className="text-xs text-red-500 flex items-center">
-                        <AlertCircle className="h-3 w-3 mr-1" />
-                        {formErrors.sourceCode}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
             </TabsContent>
           </Tabs>
           
@@ -691,7 +584,7 @@ const ContainersView: React.FC = () => {
             </Button>
             <Button
               onClick={handleCreateContainer}
-              disabled={isLoading || !newApp.name}
+              disabled={isLoading || !newContainer.name}
               className="bg-[#FF443B] hover:bg-[#E03A32] text-white"
             >
               {isLoading ? (
