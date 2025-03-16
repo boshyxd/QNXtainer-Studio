@@ -111,7 +111,6 @@ const ImagesView: React.FC = () => {
                 <TableHead>ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Tag</TableHead>
-                <TableHead>Size</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -124,7 +123,6 @@ const ImagesView: React.FC = () => {
                   <TableCell>
                     <Badge variant="outline">{image.tag}</Badge>
                   </TableCell>
-                  <TableCell>{image.size}</TableCell>
                   <TableCell>{image.created}</TableCell>
                   <TableCell>
                     <Button
