@@ -3,6 +3,7 @@ import './App.css';
 import { ThemeProvider } from '@/lib/theme-provider';
 import { ApiProvider } from '@/lib/api-provider';
 import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
 import ContainersView from '@/components/containers/ContainersView';
 import DiagnosticsView from '@/components/diagnostics/DiagnosticsView';
 import ImagesView from '@/components/images/ImagesView';
@@ -20,10 +21,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isElectron && window.electron) {
       window.electron.receive('navigate', (view: string) => {
-        if (view === 'containers-create') {
-          const event = new CustomEvent('open-container-dialog');
-          window.dispatchEvent(event);
-        } else if (view === 'containers' || view === 'images' || 
+        if (view === 'containers' || view === 'images' || 
                   view === 'networks' || view === 'volumes' || 
                   view === 'diagnostics') {
           setCurrentView(view as View);
@@ -31,6 +29,10 @@ const App: React.FC = () => {
       });
     }
   }, []);
+
+  const handleNavigate = (view: 'dashboard') => {
+    setCurrentView('containers');
+  };
 
   const renderView = () => {
     switch (currentView) {
@@ -55,10 +57,13 @@ const App: React.FC = () => {
         <div className="min-h-screen h-screen bg-background text-foreground flex flex-col">
           {isElectron && <TitleBar />}
           <div className="flex flex-1 overflow-hidden">
-            <Sidebar currentView={currentView} onNavigate={setCurrentView} />
-            <main className="flex-1 overflow-auto">
-              {renderView()}
-            </main>
+            <Sidebar currentView={currentView} onNavigate={setCurrentView} showTitle={!isElectron} />
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <Header onNavigate={handleNavigate} showTitle={isElectron} />
+              <main className="flex-1 overflow-auto">
+                {renderView()}
+              </main>
+            </div>
           </div>
         </div>
       </ApiProvider>

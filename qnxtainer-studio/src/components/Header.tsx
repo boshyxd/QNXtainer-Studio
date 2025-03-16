@@ -6,89 +6,57 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { 
-  NavigationMenu, 
-  NavigationMenuContent, 
-  NavigationMenuItem, 
-  NavigationMenuLink, 
-  NavigationMenuList, 
-  NavigationMenuTrigger 
-} from '@/components/ui/navigation-menu';
 import { SettingsDialog } from '@/components/ui/settings-dialog';
-import { Settings } from 'lucide-react';
+import { Settings, RefreshCw } from 'lucide-react';
 import { useQNXtainerApi } from '@/hooks/useQNXtainerApi';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface HeaderProps {
-  onNavigate?: (view: 'dashboard' | 'create') => void;
+  onNavigate?: (view: 'dashboard') => void;
+  showTitle?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
+const Header: React.FC<HeaderProps> = ({ onNavigate, showTitle = true }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { isConnected, refreshState } = useQNXtainerApi();
+  const { isConnected, refreshState, pollingEnabled, isLoading } = useQNXtainerApi();
 
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-qnx mr-6 cursor-pointer" onClick={() => onNavigate && onNavigate('dashboard')}>QNXtainer</h1>
-          <NavigationMenu>
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className="text-foreground hover:text-qnx">Containers</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid gap-3 p-4 w-[400px] bg-card border border-border">
-                    <li>
-                      <NavigationMenuLink className="block p-2 hover:bg-muted rounded cursor-pointer" onClick={() => onNavigate && onNavigate('dashboard')}>
-                        All Containers
-                      </NavigationMenuLink>
-                    </li>
-                    <li>
-                      <NavigationMenuLink className="block p-2 hover:bg-muted rounded cursor-pointer">
-                        Running
-                      </NavigationMenuLink>
-                    </li>
-                    <li>
-                      <NavigationMenuLink className="block p-2 hover:bg-muted rounded cursor-pointer">
-                        Stopped
-                      </NavigationMenuLink>
-                    </li>
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className="text-foreground hover:text-qnx">Images</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid gap-3 p-4 w-[400px] bg-card border border-border">
-                    <li>
-                      <NavigationMenuLink className="block p-2 hover:bg-muted rounded cursor-pointer">
-                        Local Images
-                      </NavigationMenuLink>
-                    </li>
-                    <li>
-                      <NavigationMenuLink className="block p-2 hover:bg-muted rounded cursor-pointer">
-                        Registry
-                      </NavigationMenuLink>
-                    </li>
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuLink className="text-foreground hover:text-qnx cursor-pointer">
-                  Networks
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuLink className="text-foreground hover:text-qnx cursor-pointer">
-                  Volumes
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          {showTitle && (
+            <div className="flex items-center mr-6 cursor-pointer" onClick={() => onNavigate && onNavigate('dashboard')}>
+              <svg className="h-8 w-8 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="#FF443B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3.29 7L12 12l8.71-5" stroke="#FF443B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 22V12" stroke="#FF443B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <h1 className="text-2xl font-bold text-[#FF443B]">QNXtainer</h1>
+            </div>
+          )}
         </div>
+        
         <div className="flex items-center space-x-4">
           <div className="flex items-center gap-2 mr-2">
             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
             <span className="text-sm">{isConnected ? 'Connected' : 'Disconnected'}</span>
+            
+            {pollingEnabled && isConnected && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center ml-2">
+                      <RefreshCw 
+                        className={`h-3 w-3 text-blue-500 ${isLoading ? 'animate-spin' : 'animate-pulse'}`} 
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Auto-refresh active</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
           
           <Button 
@@ -112,10 +80,6 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
             title="Server settings"
           >
             <Settings className="h-5 w-5" />
-          </Button>
-          
-          <Button onClick={() => onNavigate && onNavigate('create')}>
-            Create Container
           </Button>
         </div>
       </div>

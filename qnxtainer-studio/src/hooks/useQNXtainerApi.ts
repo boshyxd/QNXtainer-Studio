@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import QNXtainerApiClient, { ServerState, Container, Image } from '../../api_client';
 import { loadApiConfig, saveApiConfig } from '../../api_client/config';
 import { ApiConfig } from '../../api_client';
@@ -12,9 +12,16 @@ interface UseQNXtainerApiReturn {
   updateApiConfig: (newConfig: ApiConfig) => void;
   refreshState: () => Promise<void>;
   uploadImage: (file: File, name: string, tag?: string) => Promise<void>;
+  createContainer: (imageId: string, name: string) => Promise<void>;
   startContainer: (imageId: string) => Promise<void>;
   stopContainer: (containerId: string) => Promise<void>;
+  setPollingEnabled: (enabled: boolean) => void;
+  pollingEnabled: boolean;
+  pollingInterval: number;
+  setPollingInterval: (interval: number) => void;
 }
+
+const DEFAULT_POLLING_INTERVAL = 5000;
 
 export function useQNXtainerApi(): UseQNXtainerApiReturn {
   const [apiClient, setApiClient] = useState<QNXtainerApiClient | null>(null);
@@ -23,6 +30,10 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [serverState, setServerState] = useState<ServerState | null>(null);
+  const [pollingEnabled, setPollingEnabled] = useState<boolean>(true);
+  const [pollingInterval, setPollingInterval] = useState<number>(DEFAULT_POLLING_INTERVAL);
+  
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const client = new QNXtainerApiClient(apiConfig);
@@ -45,11 +56,6 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
       });
   }, [apiConfig]);
 
-  const updateApiConfig = useCallback((newConfig: ApiConfig) => {
-    saveApiConfig(newConfig);
-    setApiConfig(newConfig);
-  }, []);
-
   const refreshState = useCallback(async () => {
     if (!apiClient) return;
     
@@ -68,6 +74,32 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
     }
   }, [apiClient]);
 
+  useEffect(() => {
+    if (pollingTimerRef.current) {
+      clearInterval(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+    
+    if (pollingEnabled && apiClient) {
+      pollingTimerRef.current = setInterval(() => {
+        if (!isLoading) {
+          refreshState();
+        }
+      }, pollingInterval);
+    }
+    
+    return () => {
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current);
+      }
+    };
+  }, [pollingEnabled, pollingInterval, apiClient, refreshState, isLoading]);
+
+  const updateApiConfig = useCallback((newConfig: ApiConfig) => {
+    saveApiConfig(newConfig);
+    setApiConfig(newConfig);
+  }, []);
+
   const uploadImage = useCallback(async (file: File, name: string, tag: string = 'latest') => {
     if (!apiClient) return;
     
@@ -79,6 +111,22 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
       await refreshState();
     } catch (err) {
       setError(`Failed to upload image: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [apiClient, refreshState]);
+
+  const createContainer = useCallback(async (imageId: string, name: string) => {
+    if (!apiClient) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await apiClient.createContainer(imageId, name);
+      await refreshState();
+    } catch (err) {
+      setError(`Failed to create container: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +173,12 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
     updateApiConfig,
     refreshState,
     uploadImage,
+    createContainer,
     startContainer,
-    stopContainer
+    stopContainer,
+    setPollingEnabled,
+    pollingEnabled,
+    pollingInterval,
+    setPollingInterval
   };
 } 

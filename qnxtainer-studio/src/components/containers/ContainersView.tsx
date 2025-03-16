@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useQNXtainerApi } from '@/hooks/useQNXtainerApi';
+import { PlusCircle, AlertCircle } from 'lucide-react';
 
 const initialContainers = [
   { id: 'c1', name: 'hello-world', status: 'running', cpu: 15, memory: 128, created: '2 hours ago', appType: 'C Program' },
@@ -39,7 +40,7 @@ interface NewApp {
 }
 
 const ContainersView: React.FC = () => {
-  const { serverState, isConnected, isLoading, error, startContainer, stopContainer } = useQNXtainerApi();
+  const { serverState, isConnected, isLoading, error, startContainer, stopContainer, createContainer } = useQNXtainerApi();
   
   const [containers, setContainers] = useState<Container[]>(() => {
     const savedContainers = localStorage.getItem('qnxtainer-containers');
@@ -50,12 +51,12 @@ const ContainersView: React.FC = () => {
     if (serverState && serverState.containers) {
       const apiContainers = serverState.containers.map(container => ({
         id: container.id,
-        name: container.id.substring(0, 8),
+        name: container.name || container.id.substring(0, 8),
         status: container.status as 'running' | 'stopped',
         cpu: container.cpu,
         memory: container.memory,
         created: new Date().toLocaleDateString(),
-        appType: 'QNX Container'
+        appType: container.image ? `${container.image.name}:${container.image.tag}` : 'QNX Container'
       }));
       
       setContainers(apiContainers);
@@ -75,6 +76,11 @@ const ContainersView: React.FC = () => {
     sourceCode: ''
   });
   const [uploadMethod, setUploadMethod] = useState<'tarball' | 'editor'>('tarball');
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    file?: string;
+    sourceCode?: string;
+  }>({});
 
   useEffect(() => {
     localStorage.setItem('qnxtainer-containers', JSON.stringify(containers));
@@ -84,7 +90,7 @@ const ContainersView: React.FC = () => {
     const handleOpenDialog = () => {
       setIsCreateDialogOpen(true);
     };
-
+    
     window.addEventListener('open-container-dialog', handleOpenDialog);
     
     return () => {
@@ -177,25 +183,57 @@ const ContainersView: React.FC = () => {
     }
   };
 
-  const handleCreateContainer = () => {
-    setTimeout(() => {
-      const newId = `c${Date.now()}`;
-      const appType = newApp.file ? 
-        newApp.file.name.endsWith('.cpp') ? 'C++ Application' : 'C Program' : 
-        'C Program';
+  const validateForm = () => {
+    const errors: {
+      name?: string;
+      file?: string;
+      sourceCode?: string;
+    } = {};
+    
+    if (!newApp.name.trim()) {
+      errors.name = "Container name is required";
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(newApp.name)) {
+      errors.name = "Name can only contain letters, numbers, hyphens and underscores";
+    }
+    
+    if (uploadMethod === 'tarball' && !newApp.file) {
+      errors.file = "Please upload an application file";
+    }
+    
+    if (uploadMethod === 'editor' && !newApp.sourceCode.trim()) {
+      errors.sourceCode = "Source code is required";
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCreateContainer = async () => {
+    if (!validateForm()) {
+      return;
+    }
+    
+    try {
+      if (isConnected && serverState && serverState.images.length > 0) {
+        const imageId = serverState.images[0].id;
+        await createContainer(imageId, newApp.name);
+        toast.success(`Container "${newApp.name}" created successfully`);
+      } else {
+        const newContainer: Container = {
+          id: `c${Math.floor(Math.random() * 1000)}`,
+          name: newApp.name,
+          status: 'stopped',
+          cpu: 0,
+          memory: 0,
+          created: new Date().toLocaleDateString(),
+          appType: uploadMethod === 'editor' ? 'C Program' : 'Container Image'
+        };
+        
+        setContainers(prev => [...prev, newContainer]);
+        toast.success(`Container "${newApp.name}" created (mock)`);
+      }
       
-      const newContainer: Container = {
-        id: newId,
-        name: newApp.name,
-        status: 'running',
-        cpu: Math.floor(Math.random() * 20) + 5,
-        memory: Math.floor(Math.random() * 200) + 50,
-        created: 'Just now',
-        appType
-      };
-      
-      setContainers([...containers, newContainer]);
-      
+      setIsCreateDialogOpen(false);
       setNewApp({
         name: '',
         description: '',
@@ -204,10 +242,10 @@ const ContainersView: React.FC = () => {
         runCommand: '',
         sourceCode: ''
       });
-      
-      setIsCreateDialogOpen(false);
-      toast.success(`Container "${newApp.name}" created successfully`);
-    }, 1500);
+      setFormErrors({});
+    } catch (error) {
+      toast.error(`Failed to create container: ${error instanceof Error ? error.message : String(error)}`);
+    }
   };
 
   const hasRunningSelected = selectedContainers.some(id => 
@@ -273,201 +311,45 @@ const ContainersView: React.FC = () => {
       
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Container list</h1>
-          <p className="text-muted-foreground">Manage your QNX containerized applications</p>
+          <h1 className="text-2xl font-bold">Containers</h1>
+          <p className="text-muted-foreground">Manage your QNX containers</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <select 
-            className="bg-background border rounded-md px-3 py-2 text-sm"
-            value={selectedFilter}
-            onChange={(e) => setSelectedFilter(e.target.value as any)}
+        
+        <div className="flex space-x-2">
+          <Button
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="mr-4 bg-[#FF443B] hover:bg-[#E03A32] text-white"
           >
-            <option value="all">All Containers</option>
-            <option value="running">Running</option>
-            <option value="stopped">Stopped</option>
-          </select>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-qnx hover:bg-qnx-dark">
-                <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14" />
-                  <path d="M12 5v14" />
-                </svg>
-                Add container
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px]">
-              <DialogHeader>
-                <DialogTitle>Create Containerized Application</DialogTitle>
-                <DialogDescription>
-                  Upload your C/C++ application to be containerized and run on QNX.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <Tabs defaultValue="tarball" className="w-full" onValueChange={(value) => setUploadMethod(value as 'tarball' | 'editor')}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="tarball">Upload Tarball</TabsTrigger>
-                  <TabsTrigger value="editor">Code Editor</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="tarball" className="space-y-4 mt-4">
-                  <Alert>
-                    <AlertDescription>
-                      Upload a tarball (.tar.gz) containing your C/C++ application source code. The server will compile and containerize it.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="grid gap-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="app-name" className="text-right">
-                        Application Name
-                      </Label>
-                      <Input 
-                        id="app-name" 
-                        placeholder="e.g., hello-world" 
-                        className="col-span-3"
-                        value={newApp.name}
-                        onChange={(e) => setNewApp({...newApp, name: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="app-description" className="text-right">
-                        Description
-                      </Label>
-                      <Input 
-                        id="app-description" 
-                        placeholder="Optional description" 
-                        className="col-span-3"
-                        value={newApp.description}
-                        onChange={(e) => setNewApp({...newApp, description: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-4 items-start gap-4">
-                      <Label htmlFor="app-file" className="text-right pt-2">
-                        Application Tarball
-                      </Label>
-                      <div className="col-span-3">
-                        <Input 
-                          id="app-file" 
-                          type="file" 
-                          accept=".tar,.tar.gz,.tgz,.c,.cpp,.h,.hpp"
-                          onChange={handleFileChange}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Accepted formats: .tar, .tar.gz, .tgz, .c, .cpp, .h, .hpp
-                        </p>
-                        {newApp.file && (
-                          <p className="text-xs text-green-500 mt-1">
-                            Selected file: {newApp.file.name} ({Math.round(newApp.file.size / 1024)} KB)
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="build-command" className="text-right">
-                        Build Command
-                      </Label>
-                      <Input 
-                        id="build-command" 
-                        placeholder="e.g., make or gcc -o myapp main.c" 
-                        className="col-span-3"
-                        value={newApp.buildCommand}
-                        onChange={(e) => setNewApp({...newApp, buildCommand: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="run-command" className="text-right">
-                        Run Command
-                      </Label>
-                      <Input 
-                        id="run-command" 
-                        placeholder="e.g., ./myapp" 
-                        className="col-span-3"
-                        value={newApp.runCommand}
-                        onChange={(e) => setNewApp({...newApp, runCommand: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="editor" className="space-y-4 mt-4">
-                  <Alert>
-                    <AlertDescription>
-                      Write or paste your C/C++ code directly. For simple applications only.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="grid gap-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="editor-app-name" className="text-right">
-                        Application Name
-                      </Label>
-                      <Input 
-                        id="editor-app-name" 
-                        placeholder="e.g., hello-world" 
-                        className="col-span-3"
-                        value={newApp.name}
-                        onChange={(e) => setNewApp({...newApp, name: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="editor-app-description" className="text-right">
-                        Description
-                      </Label>
-                      <Input 
-                        id="editor-app-description" 
-                        placeholder="Optional description" 
-                        className="col-span-3"
-                        value={newApp.description}
-                        onChange={(e) => setNewApp({...newApp, description: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-4 items-start gap-4">
-                      <Label htmlFor="source-code" className="text-right pt-2">
-                        Source Code
-                      </Label>
-                      <Textarea 
-                        id="source-code" 
-                        placeholder={'#include <stdio.h>\n\nint main() {\n    printf("Hello, QNX!\\n");\n    return 0;\n}'}
-                        className="col-span-3 font-mono h-64"
-                        value={newApp.sourceCode}
-                        onChange={(e) => setNewApp({...newApp, sourceCode: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-              
-              <DialogFooter className="mt-6">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isLoading}>
-                  Cancel
-                </Button>
-                <Button 
-                  className="bg-qnx hover:bg-qnx-dark" 
-                  onClick={handleCreateContainer}
-                  disabled={isCreateButtonDisabled}
-                >
-                  {isLoading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </>
-                  ) : (
-                    'Create & Deploy'
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            New Container
+          </Button>
+          
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedFilter('all')}
+              className={selectedFilter === 'all' ? 'bg-muted' : ''}
+            >
+              All
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedFilter('running')}
+              className={selectedFilter === 'running' ? 'bg-muted' : ''}
+            >
+              Running
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedFilter('stopped')}
+              className={selectedFilter === 'stopped' ? 'bg-muted' : ''}
+            >
+              Stopped
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -632,6 +514,235 @@ const ContainersView: React.FC = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-qnx"></div>
         </div>
       )}
+
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Create Containerized Application</DialogTitle>
+            <DialogDescription>
+              Upload your C/C++ application to be containerized and run on QNX.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Tabs defaultValue="tarball" className="w-full" onValueChange={(value) => setUploadMethod(value as 'tarball' | 'editor')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="tarball">Upload Tarball</TabsTrigger>
+              <TabsTrigger value="editor">Code Editor</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="tarball" className="space-y-4 mt-4">
+              <Alert>
+                <AlertDescription>
+                  Upload a tarball (.tar.gz) containing your C/C++ application source code. The server will compile and containerize it.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="grid gap-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="app-name" className="text-right">
+                    Application Name
+                  </Label>
+                  <div className="col-span-3 space-y-1">
+                    <Input 
+                      id="app-name" 
+                      placeholder="e.g., hello-world" 
+                      className={formErrors.name ? "border-red-500" : ""}
+                      value={newApp.name}
+                      onChange={(e) => {
+                        setNewApp({...newApp, name: e.target.value});
+                        if (formErrors.name) {
+                          setFormErrors({...formErrors, name: undefined});
+                        }
+                      }}
+                    />
+                    {formErrors.name && (
+                      <p className="text-xs text-red-500 flex items-center">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        {formErrors.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="app-description" className="text-right">
+                    Description
+                  </Label>
+                  <div className="col-span-3">
+                    <Input 
+                      id="app-description" 
+                      placeholder="Optional description" 
+                      value={newApp.description}
+                      onChange={(e) => setNewApp({...newApp, description: e.target.value})}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="app-file" className="text-right pt-2">
+                    Application Tarball
+                  </Label>
+                  <div className="col-span-3 space-y-1">
+                    <Input 
+                      id="app-file" 
+                      type="file" 
+                      accept=".tar,.tar.gz,.tgz,.c,.cpp,.h,.hpp"
+                      className={formErrors.file ? "border-red-500" : ""}
+                      onChange={(e) => {
+                        handleFileChange(e);
+                        if (formErrors.file) {
+                          setFormErrors({...formErrors, file: undefined});
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Accepted formats: .tar, .tar.gz, .tgz, .c, .cpp, .h, .hpp
+                    </p>
+                    {newApp.file && (
+                      <p className="text-xs text-green-500 mt-1">
+                        Selected file: {newApp.file.name} ({Math.round(newApp.file.size / 1024)} KB)
+                      </p>
+                    )}
+                    {formErrors.file && (
+                      <p className="text-xs text-red-500 flex items-center">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        {formErrors.file}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="build-command" className="text-right">
+                    Build Command
+                  </Label>
+                  <div className="col-span-3">
+                    <Input 
+                      id="build-command" 
+                      placeholder="e.g., make or gcc -o myapp main.c" 
+                      value={newApp.buildCommand}
+                      onChange={(e) => setNewApp({...newApp, buildCommand: e.target.value})}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="run-command" className="text-right">
+                    Run Command
+                  </Label>
+                  <div className="col-span-3">
+                    <Input 
+                      id="run-command" 
+                      placeholder="e.g., ./myapp" 
+                      value={newApp.runCommand}
+                      onChange={(e) => setNewApp({...newApp, runCommand: e.target.value})}
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="editor" className="space-y-4 mt-4">
+              <Alert>
+                <AlertDescription>
+                  Write or paste your C/C++ code directly. For simple applications only.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="grid gap-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="editor-app-name" className="text-right">
+                    Application Name
+                  </Label>
+                  <div className="col-span-3 space-y-1">
+                    <Input 
+                      id="editor-app-name" 
+                      placeholder="e.g., hello-world" 
+                      className={formErrors.name ? "border-red-500" : ""}
+                      value={newApp.name}
+                      onChange={(e) => {
+                        setNewApp({...newApp, name: e.target.value});
+                        if (formErrors.name) {
+                          setFormErrors({...formErrors, name: undefined});
+                        }
+                      }}
+                    />
+                    {formErrors.name && (
+                      <p className="text-xs text-red-500 flex items-center">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        {formErrors.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="editor-app-description" className="text-right">
+                    Description
+                  </Label>
+                  <div className="col-span-3">
+                    <Input 
+                      id="editor-app-description" 
+                      placeholder="Optional description" 
+                      value={newApp.description}
+                      onChange={(e) => setNewApp({...newApp, description: e.target.value})}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="source-code" className="text-right pt-2">
+                    Source Code
+                  </Label>
+                  <div className="col-span-3 space-y-1">
+                    <Textarea 
+                      id="source-code" 
+                      placeholder={'#include <stdio.h>\n\nint main() {\n    printf("Hello, QNX!\\n");\n    return 0;\n}'}
+                      className={`font-mono h-64 ${formErrors.sourceCode ? "border-red-500" : ""}`}
+                      value={newApp.sourceCode}
+                      onChange={(e) => {
+                        setNewApp({...newApp, sourceCode: e.target.value});
+                        if (formErrors.sourceCode) {
+                          setFormErrors({...formErrors, sourceCode: undefined});
+                        }
+                      }}
+                    />
+                    {formErrors.sourceCode && (
+                      <p className="text-xs text-red-500 flex items-center">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        {formErrors.sourceCode}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateContainer}
+              disabled={isLoading || !newApp.name}
+              className="bg-[#FF443B] hover:bg-[#E03A32] text-white"
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                'Create & Deploy'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

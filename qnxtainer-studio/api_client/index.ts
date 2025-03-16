@@ -1,10 +1,15 @@
 
 export interface Container {
   id: string;
+  name: string;
   status: string;
   cpu: number;
   memory: number;
-  image?: string;
+  image?: {
+    id: string;
+    name: string;
+    tag: string;
+  };
 }
 
 export interface Image {
@@ -69,14 +74,58 @@ class QNXtainerApiClient {
     }
   }
 
-  async startContainer(imageId: string): Promise<{ status: string, image_id: string }> {
+  async createContainer(imageId: string, name: string): Promise<{ status: string, container_id: string }> {
     try {
-      const response = await fetch(`${this.baseUrl}/start/${imageId}`, {
+      const response = await fetch(`${this.baseUrl}/create-container`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_id: imageId,
+          name: name,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Server responded with status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to create container:', error);
+      throw error;
+    }
+  }
+
+  async startContainerFromImage(imageId: string): Promise<{ status: string, container_id: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/start-from-image/${imageId}`, {
         method: 'POST',
       });
       
       if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Server responded with status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to start container from image:', error);
+      throw error;
+    }
+  }
+
+  async startContainer(containerId: string): Promise<{ status: string, container_id: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/start/${containerId}`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Server responded with status: ${response.status}`);
       }
       
       return await response.json();
@@ -86,14 +135,15 @@ class QNXtainerApiClient {
     }
   }
 
-  async stopContainer(containerId: string): Promise<{ status: string, image_id: string }> {
+  async stopContainer(containerId: string): Promise<{ status: string, container_id: string }> {
     try {
       const response = await fetch(`${this.baseUrl}/stop/${containerId}`, {
         method: 'POST',
       });
       
       if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Server responded with status: ${response.status}`);
       }
       
       return await response.json();
