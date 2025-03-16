@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -10,29 +10,63 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
-// Mock data for containers
-const containers = [
+// Initial mock data for containers - will be replaced with state
+const initialContainers = [
   { id: 'c1', name: 'hello-world', status: 'running', cpu: 15, memory: 128, created: '2 hours ago', appType: 'C Program' },
   { id: 'c2', name: 'sensor-monitor', status: 'running', cpu: 5, memory: 64, created: '3 hours ago', appType: 'C++ Application' },
   { id: 'c3', name: 'data-processor', status: 'stopped', cpu: 0, memory: 0, created: '1 day ago', appType: 'C Program' },
-  { id: 'c4', name: 'system-monitor', status: 'running', cpu: 25, memory: 256, created: '5 hours ago', appType: 'C Program' },
 ];
 
+// Interface for container type
+interface Container {
+  id: string;
+  name: string;
+  status: 'running' | 'stopped';
+  cpu: number;
+  memory: number;
+  created: string;
+  appType: string;
+}
+
+// Interface for new application
+interface NewApp {
+  name: string;
+  description: string;
+  file: File | null;
+  buildCommand: string;
+  runCommand: string;
+  sourceCode: string;
+}
+
 const ContainersView: React.FC = () => {
+  // State for containers
+  const [containers, setContainers] = useState<Container[]>(() => {
+    // Try to load from localStorage
+    const savedContainers = localStorage.getItem('qnxtainer-containers');
+    return savedContainers ? JSON.parse(savedContainers) : initialContainers;
+  });
+  
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'running' | 'stopped'>('all');
   const [selectedContainers, setSelectedContainers] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [newApp, setNewApp] = useState({
+  const [newApp, setNewApp] = useState<NewApp>({
     name: '',
     description: '',
-    file: null as File | null,
+    file: null,
     buildCommand: '',
     runCommand: '',
     sourceCode: ''
   });
   const [uploadMethod, setUploadMethod] = useState<'tarball' | 'editor'>('tarball');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Save containers to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('qnxtainer-containers', JSON.stringify(containers));
+  }, [containers]);
 
   const filteredContainers = containers.filter(container => {
     if (selectedFilter === 'all') return true;
@@ -61,8 +95,58 @@ const ContainersView: React.FC = () => {
   };
 
   const handleAction = (action: string) => {
-    console.log(`Performing ${action} on containers:`, selectedContainers);
-    // Here you would implement the actual container management logic
+    setIsLoading(true);
+    
+    // Simulate server processing
+    setTimeout(() => {
+      switch (action) {
+        case 'start':
+          setContainers(containers.map(container => 
+            selectedContainers.includes(container.id) && container.status === 'stopped'
+              ? { ...container, status: 'running', cpu: Math.floor(Math.random() * 20) + 5, memory: Math.floor(Math.random() * 200) + 50 }
+              : container
+          ));
+          toast.success(`Started ${selectedContainers.length} container(s)`);
+          break;
+        case 'stop':
+          setContainers(containers.map(container => 
+            selectedContainers.includes(container.id) && container.status === 'running'
+              ? { ...container, status: 'stopped', cpu: 0, memory: 0 }
+              : container
+          ));
+          toast.success(`Stopped ${selectedContainers.length} container(s)`);
+          break;
+        case 'restart':
+          setContainers(containers.map(container => 
+            selectedContainers.includes(container.id)
+              ? { ...container, status: 'running', cpu: Math.floor(Math.random() * 20) + 5, memory: Math.floor(Math.random() * 200) + 50 }
+              : container
+          ));
+          toast.success(`Restarted ${selectedContainers.length} container(s)`);
+          break;
+        case 'kill':
+          setContainers(containers.map(container => 
+            selectedContainers.includes(container.id)
+              ? { ...container, status: 'stopped', cpu: 0, memory: 0 }
+              : container
+          ));
+          toast.success(`Killed ${selectedContainers.length} container(s)`);
+          break;
+        case 'remove':
+          setContainers(containers.filter(container => !selectedContainers.includes(container.id)));
+          setSelectedContainers([]);
+          setSelectAll(false);
+          toast.success(`Removed ${selectedContainers.length} container(s)`);
+          break;
+        case 'logs':
+          toast.info(`Viewing logs for ${containers.find(c => c.id === selectedContainers[0])?.name}`);
+          break;
+        default:
+          break;
+      }
+      
+      setIsLoading(false);
+    }, 1000);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,19 +159,41 @@ const ContainersView: React.FC = () => {
   };
 
   const handleCreateContainer = () => {
-    console.log('Creating container with:', newApp);
-    // Here you would implement the actual container creation logic
-    // This would involve sending the tarball or source code to the server
-    // where a bash script would compile, containerize, and run it
-    setIsCreateDialogOpen(false);
-    setNewApp({
-      name: '',
-      description: '',
-      file: null,
-      buildCommand: '',
-      runCommand: '',
-      sourceCode: ''
-    });
+    setIsLoading(true);
+    
+    // Simulate server processing
+    setTimeout(() => {
+      const newId = `c${Date.now()}`;
+      const appType = newApp.file ? 
+        newApp.file.name.endsWith('.cpp') ? 'C++ Application' : 'C Program' : 
+        'C Program';
+      
+      const newContainer: Container = {
+        id: newId,
+        name: newApp.name,
+        status: 'running',
+        cpu: Math.floor(Math.random() * 20) + 5,
+        memory: Math.floor(Math.random() * 200) + 50,
+        created: 'Just now',
+        appType
+      };
+      
+      setContainers([...containers, newContainer]);
+      
+      // Reset form
+      setNewApp({
+        name: '',
+        description: '',
+        file: null,
+        buildCommand: '',
+        runCommand: '',
+        sourceCode: ''
+      });
+      
+      setIsCreateDialogOpen(false);
+      setIsLoading(false);
+      toast.success(`Container "${newApp.name}" created successfully`);
+    }, 1500);
   };
 
   // Check if any selected containers are running/stopped
@@ -101,7 +207,8 @@ const ContainersView: React.FC = () => {
 
   const isCreateButtonDisabled = 
     (uploadMethod === 'tarball' && (!newApp.name || !newApp.file)) || 
-    (uploadMethod === 'editor' && (!newApp.name || !newApp.sourceCode));
+    (uploadMethod === 'editor' && (!newApp.name || !newApp.sourceCode)) ||
+    isLoading;
 
   return (
     <div className="p-6">
@@ -186,12 +293,17 @@ const ContainersView: React.FC = () => {
                         <Input 
                           id="app-file" 
                           type="file" 
-                          accept=".tar,.tar.gz,.tgz"
+                          accept=".tar,.tar.gz,.tgz,.c,.cpp,.h,.hpp"
                           onChange={handleFileChange}
                         />
                         <p className="text-xs text-muted-foreground mt-1">
-                          Accepted formats: .tar, .tar.gz, .tgz
+                          Accepted formats: .tar, .tar.gz, .tgz, .c, .cpp, .h, .hpp
                         </p>
+                        {newApp.file && (
+                          <p className="text-xs text-green-500 mt-1">
+                            Selected file: {newApp.file.name} ({Math.round(newApp.file.size / 1024)} KB)
+                          </p>
+                        )}
                       </div>
                     </div>
                     
@@ -274,7 +386,7 @@ const ContainersView: React.FC = () => {
               </Tabs>
               
               <DialogFooter className="mt-6">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isLoading}>
                   Cancel
                 </Button>
                 <Button 
@@ -282,7 +394,17 @@ const ContainersView: React.FC = () => {
                   onClick={handleCreateContainer}
                   disabled={isCreateButtonDisabled}
                 >
-                  Create & Deploy
+                  {isLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </>
+                  ) : (
+                    'Create & Deploy'
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -295,7 +417,7 @@ const ContainersView: React.FC = () => {
           size="sm" 
           variant="outline" 
           className="bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20 hover:text-green-600"
-          disabled={!hasStoppedSelected}
+          disabled={!hasStoppedSelected || isLoading}
           onClick={() => handleAction('start')}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -307,7 +429,7 @@ const ContainersView: React.FC = () => {
           size="sm" 
           variant="outline" 
           className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:text-red-600"
-          disabled={!hasRunningSelected}
+          disabled={!hasRunningSelected || isLoading}
           onClick={() => handleAction('stop')}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -319,7 +441,7 @@ const ContainersView: React.FC = () => {
           size="sm" 
           variant="outline" 
           className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:text-red-600"
-          disabled={selectedContainers.length === 0}
+          disabled={selectedContainers.length === 0 || isLoading}
           onClick={() => handleAction('kill')}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -331,7 +453,7 @@ const ContainersView: React.FC = () => {
           size="sm" 
           variant="outline" 
           className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 hover:text-blue-600"
-          disabled={!hasRunningSelected}
+          disabled={!hasRunningSelected || isLoading}
           onClick={() => handleAction('restart')}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -346,7 +468,7 @@ const ContainersView: React.FC = () => {
           size="sm" 
           variant="outline" 
           className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 hover:text-blue-600"
-          disabled={selectedContainers.length !== 1}
+          disabled={selectedContainers.length !== 1 || isLoading}
           onClick={() => handleAction('logs')}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -358,7 +480,7 @@ const ContainersView: React.FC = () => {
           size="sm" 
           variant="outline" 
           className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:text-red-600"
-          disabled={selectedContainers.length === 0}
+          disabled={selectedContainers.length === 0 || isLoading}
           onClick={() => handleAction('remove')}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -380,6 +502,7 @@ const ContainersView: React.FC = () => {
                     checked={selectAll} 
                     onCheckedChange={handleSelectAll}
                     aria-label="Select all containers"
+                    disabled={isLoading}
                   />
                 </TableHead>
                 <TableHead>Name</TableHead>
@@ -396,7 +519,7 @@ const ContainersView: React.FC = () => {
                 <TableRow 
                   key={container.id}
                   className={selectedContainers.includes(container.id) ? "bg-muted/50" : ""}
-                  onClick={() => handleSelectContainer(container.id)}
+                  onClick={() => !isLoading && handleSelectContainer(container.id)}
                 >
                   <TableCell className="w-[40px]">
                     <Checkbox 
@@ -404,6 +527,7 @@ const ContainersView: React.FC = () => {
                       onCheckedChange={() => handleSelectContainer(container.id)}
                       aria-label={`Select ${container.name}`}
                       onClick={(e) => e.stopPropagation()}
+                      disabled={isLoading}
                     />
                   </TableCell>
                   <TableCell className="font-medium">{container.name}</TableCell>
@@ -416,7 +540,7 @@ const ContainersView: React.FC = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>{container.appType}</TableCell>
-                  <TableCell>172.17.0.{Math.floor(Math.random() * 100) + 1}</TableCell>
+                  <TableCell>172.17.0.{parseInt(container.id.replace(/\D/g, '')) % 100 + 1}</TableCell>
                   <TableCell>{container.cpu}%</TableCell>
                   <TableCell>{container.memory} MB</TableCell>
                   <TableCell>{container.created}</TableCell>
@@ -425,7 +549,17 @@ const ContainersView: React.FC = () => {
               {filteredContainers.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="h-24 text-center">
-                    No containers found. Create a container to get started.
+                    {isLoading ? (
+                      <div className="flex justify-center items-center">
+                        <svg className="animate-spin h-5 w-5 mr-3 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading containers...
+                      </div>
+                    ) : (
+                      'No containers found. Create a container to get started.'
+                    )}
                   </TableCell>
                 </TableRow>
               )}

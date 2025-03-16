@@ -20,7 +20,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
   return (
     <div className="h-screen w-64 bg-sidebar border-r border-border flex flex-col">
       <div className="p-4 border-b border-border">
-        <h1 className="text-2xl font-bold text-qnx">QNXtainer</h1>
+        <div className="flex items-center gap-2">
+          <img src="/qnx-logo.svg" alt="QNX Logo" className="h-8 w-8" />
+          <h1 className="text-2xl font-bold text-qnx">QNXtainer</h1>
+        </div>
         <p className="text-xs text-sidebar-foreground/70">Container Management for QNX</p>
       </div>
       <nav className="flex-1 p-2">
@@ -56,7 +59,7 @@ const SidebarIcon: React.FC<{ name: string }> = ({ name }) => {
   switch (name) {
     case 'boxes':
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z" />
           <path d="m7 16.5-4.74-2.85" />
           <path d="m7 16.5 5-3" />
@@ -73,15 +76,15 @@ const SidebarIcon: React.FC<{ name: string }> = ({ name }) => {
       );
     case 'layers':
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
-          <path d="m22 12.18-8.58 3.91a2 2 0 0 1-1.66 0L2 12.18" />
-          <path d="m22 16.18-8.58 3.91a2 2 0 0 1-1.66 0L2 16.18" />
+          <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" />
+          <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" />
         </svg>
       );
     case 'network':
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="16" y="16" width="6" height="6" rx="1" />
           <rect x="2" y="16" width="6" height="6" rx="1" />
           <rect x="9" y="2" width="6" height="6" rx="1" />
@@ -91,7 +94,7 @@ const SidebarIcon: React.FC<{ name: string }> = ({ name }) => {
       );
     case 'database':
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <ellipse cx="12" cy="5" rx="9" ry="3" />
           <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
           <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
@@ -99,7 +102,7 @@ const SidebarIcon: React.FC<{ name: string }> = ({ name }) => {
       );
     case 'activity':
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
         </svg>
       );
