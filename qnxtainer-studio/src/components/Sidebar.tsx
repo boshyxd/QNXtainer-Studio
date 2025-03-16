@@ -52,7 +52,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
   );
 };
 
-// Simple icon component based on icon name
 const SidebarIcon: React.FC<{ name: string }> = ({ name }) => {
   switch (name) {
     case 'boxes':
