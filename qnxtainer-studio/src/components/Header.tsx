@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu, 
@@ -14,12 +14,18 @@ import {
   NavigationMenuList, 
   NavigationMenuTrigger 
 } from '@/components/ui/navigation-menu';
+import { SettingsDialog } from '@/components/ui/settings-dialog';
+import { Settings } from 'lucide-react';
+import { useQNXtainerApi } from '@/hooks/useQNXtainerApi';
 
 interface HeaderProps {
   onNavigate?: (view: 'dashboard' | 'create') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { isConnected, refreshState } = useQNXtainerApi();
+
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -80,32 +86,44 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
           </NavigationMenu>
         </div>
         <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2 mr-2">
+            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="text-sm">{isConnected ? 'Connected' : 'Disconnected'}</span>
+          </div>
+          
           <Button 
-            variant="outline" 
-            className="border-qnx text-qnx hover:bg-qnx hover:text-white"
-            onClick={() => onNavigate && onNavigate('create')}
+            variant="ghost" 
+            size="icon"
+            onClick={() => refreshState()}
+            title="Refresh connection"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-refresh-cw">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+              <path d="M8 16H3v5"/>
+            </svg>
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setIsSettingsOpen(true)}
+            title="Server settings"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+          
+          <Button onClick={() => onNavigate && onNavigate('create')}>
             Create Container
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 rounded-full">
-                <span className="sr-only">Open menu</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="12" cy="5" r="1" />
-                  <circle cx="12" cy="19" r="1" />
-                </svg>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border-border">
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Help</DropdownMenuItem>
-              <DropdownMenuItem>About</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
+      
+      <SettingsDialog 
+        open={isSettingsOpen} 
+        onOpenChange={setIsSettingsOpen} 
+      />
     </header>
   );
 };

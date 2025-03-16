@@ -11,15 +11,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { useQNXtainerApi } from '@/hooks/useQNXtainerApi';
 
-// Initial mock data for containers - will be replaced with state
 const initialContainers = [
   { id: 'c1', name: 'hello-world', status: 'running', cpu: 15, memory: 128, created: '2 hours ago', appType: 'C Program' },
   { id: 'c2', name: 'sensor-monitor', status: 'running', cpu: 5, memory: 64, created: '3 hours ago', appType: 'C++ Application' },
   { id: 'c3', name: 'data-processor', status: 'stopped', cpu: 0, memory: 0, created: '1 day ago', appType: 'C Program' },
 ];
 
-// Interface for container type
 interface Container {
   id: string;
   name: string;
@@ -30,7 +29,6 @@ interface Container {
   appType: string;
 }
 
-// Interface for new application
 interface NewApp {
   name: string;
   description: string;
@@ -41,12 +39,28 @@ interface NewApp {
 }
 
 const ContainersView: React.FC = () => {
-  // State for containers
+  const { serverState, isConnected, isLoading, error, startContainer, stopContainer } = useQNXtainerApi();
+  
   const [containers, setContainers] = useState<Container[]>(() => {
-    // Try to load from localStorage
     const savedContainers = localStorage.getItem('qnxtainer-containers');
     return savedContainers ? JSON.parse(savedContainers) : initialContainers;
   });
+  
+  useEffect(() => {
+    if (serverState && serverState.containers) {
+      const apiContainers = serverState.containers.map(container => ({
+        id: container.id,
+        name: container.id.substring(0, 8),
+        status: container.status as 'running' | 'stopped',
+        cpu: container.cpu,
+        memory: container.memory,
+        created: new Date().toLocaleDateString(),
+        appType: 'QNX Container'
+      }));
+      
+      setContainers(apiContainers);
+    }
+  }, [serverState]);
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'running' | 'stopped'>('all');
@@ -61,12 +75,22 @@ const ContainersView: React.FC = () => {
     sourceCode: ''
   });
   const [uploadMethod, setUploadMethod] = useState<'tarball' | 'editor'>('tarball');
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Save containers to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('qnxtainer-containers', JSON.stringify(containers));
   }, [containers]);
+
+  useEffect(() => {
+    const handleOpenDialog = () => {
+      setIsCreateDialogOpen(true);
+    };
+
+    window.addEventListener('open-container-dialog', handleOpenDialog);
+    
+    return () => {
+      window.removeEventListener('open-container-dialog', handleOpenDialog);
+    };
+  }, []);
 
   const filteredContainers = containers.filter(container => {
     if (selectedFilter === 'all') return true;
@@ -95,9 +119,6 @@ const ContainersView: React.FC = () => {
   };
 
   const handleAction = (action: string) => {
-    setIsLoading(true);
-    
-    // Simulate server processing
     setTimeout(() => {
       switch (action) {
         case 'start':
@@ -144,8 +165,6 @@ const ContainersView: React.FC = () => {
         default:
           break;
       }
-      
-      setIsLoading(false);
     }, 1000);
   };
 
@@ -159,9 +178,6 @@ const ContainersView: React.FC = () => {
   };
 
   const handleCreateContainer = () => {
-    setIsLoading(true);
-    
-    // Simulate server processing
     setTimeout(() => {
       const newId = `c${Date.now()}`;
       const appType = newApp.file ? 
@@ -180,7 +196,6 @@ const ContainersView: React.FC = () => {
       
       setContainers([...containers, newContainer]);
       
-      // Reset form
       setNewApp({
         name: '',
         description: '',
@@ -191,12 +206,10 @@ const ContainersView: React.FC = () => {
       });
       
       setIsCreateDialogOpen(false);
-      setIsLoading(false);
       toast.success(`Container "${newApp.name}" created successfully`);
     }, 1500);
   };
 
-  // Check if any selected containers are running/stopped
   const hasRunningSelected = selectedContainers.some(id => 
     containers.find(c => c.id === id)?.status === 'running'
   );
@@ -210,8 +223,54 @@ const ContainersView: React.FC = () => {
     (uploadMethod === 'editor' && (!newApp.name || !newApp.sourceCode)) ||
     isLoading;
 
+  const handleStartContainer = async (containerId: string) => {
+    try {
+      if (isConnected) {
+        await startContainer(containerId);
+        toast.success(`Container ${containerId} started successfully`);
+      } else {
+        setContainers(prevContainers => 
+          prevContainers.map(container => 
+            container.id === containerId 
+              ? { ...container, status: 'running', cpu: 5, memory: 64 } 
+              : container
+          )
+        );
+        toast.success(`Container ${containerId} started (mock)`);
+      }
+    } catch (error) {
+      toast.error(`Failed to start container: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+  
+  const handleStopContainer = async (containerId: string) => {
+    try {
+      if (isConnected) {
+        await stopContainer(containerId);
+        toast.success(`Container ${containerId} stopped successfully`);
+      } else {
+        setContainers(prevContainers => 
+          prevContainers.map(container => 
+            container.id === containerId 
+              ? { ...container, status: 'stopped', cpu: 0, memory: 0 } 
+              : container
+          )
+        );
+        toast.success(`Container ${containerId} stopped (mock)`);
+      }
+    } catch (error) {
+      toast.error(`Failed to stop container: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
   return (
-    <div className="p-6">
+    <div className="container mx-auto p-6">
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Container list</h1>
@@ -418,7 +477,7 @@ const ContainersView: React.FC = () => {
           variant="outline" 
           className="bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20 hover:text-green-600"
           disabled={!hasStoppedSelected || isLoading}
-          onClick={() => handleAction('start')}
+          onClick={() => handleStartContainer(selectedContainers[0])}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="5 3 19 12 5 21 5 3" />
@@ -430,7 +489,7 @@ const ContainersView: React.FC = () => {
           variant="outline" 
           className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:text-red-600"
           disabled={!hasRunningSelected || isLoading}
-          onClick={() => handleAction('stop')}
+          onClick={() => handleStopContainer(selectedContainers[0])}
         >
           <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="6" y="6" width="12" height="12" />
@@ -567,6 +626,12 @@ const ContainersView: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+      
+      {isLoading && (
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-qnx"></div>
+        </div>
+      )}
     </div>
   );
 };

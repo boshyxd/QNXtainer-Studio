@@ -1,14 +1,14 @@
-import { app, BrowserWindow, Menu, ipcMain, shell } from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');
+const path = require('path');
+const url = require('url');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow;
 
 function createWindow() {
+  console.log('Creating Electron window...');
+  
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -20,18 +20,33 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.cjs')
     },
     icon: path.join(__dirname, '../public/qnx-logo.svg')
   });
 
-  const startUrl = process.env.ELECTRON_START_URL || new URL(path.join('file:', __dirname, '../dist/index.html')).href;
+  const startUrl = process.env.ELECTRON_START_URL || url.format({
+    pathname: path.join(__dirname, '../dist/index.html'),
+    protocol: 'file:',
+    slashes: true
+  });
+  
+  console.log('Loading URL:', startUrl);
   
   mainWindow.loadURL(startUrl);
 
-  if (process.env.NODE_ENV === 'development') {
+  if (isDev) {
     mainWindow.webContents.openDevTools();
+    console.log('DevTools opened (development mode)');
   }
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('Page loaded successfully');
+  });
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Failed to load:', errorCode, errorDescription);
+  });
 
   const template = [
     {
@@ -109,6 +124,7 @@ function createWindow() {
   Menu.setApplicationMenu(menu);
 
   ipcMain.on('window-control', (event, command) => {
+    console.log('Window control command received:', command);
     switch (command) {
       case 'minimize':
         mainWindow.minimize();
@@ -130,6 +146,10 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
+app.on('ready', () => {
+  console.log('Electron app is ready');
+});
 
 app.whenReady().then(createWindow);
 

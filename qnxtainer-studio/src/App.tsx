@@ -1,17 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import { ThemeProvider } from '@/lib/theme-provider';
+import { ApiProvider } from '@/lib/api-provider';
 import Sidebar from '@/components/Sidebar';
 import ContainersView from '@/components/containers/ContainersView';
 import DiagnosticsView from '@/components/diagnostics/DiagnosticsView';
 import ImagesView from '@/components/images/ImagesView';
 import NetworksView from '@/components/networks/NetworksView';
 import VolumesView from '@/components/volumes/VolumesView';
+import TitleBar from '@/components/TitleBar';
+
+const isElectron = typeof window !== 'undefined' && window.electron !== undefined;
 
 type View = 'containers' | 'images' | 'networks' | 'volumes' | 'diagnostics';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('containers');
+
+  useEffect(() => {
+    if (isElectron && window.electron) {
+      window.electron.receive('navigate', (view: string) => {
+        if (view === 'containers-create') {
+          const event = new CustomEvent('open-container-dialog');
+          window.dispatchEvent(event);
+        } else if (view === 'containers' || view === 'images' || 
+                  view === 'networks' || view === 'volumes' || 
+                  view === 'diagnostics') {
+          setCurrentView(view as View);
+        }
+      });
+    }
+  }, []);
 
   const renderView = () => {
     switch (currentView) {
@@ -32,12 +51,17 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider defaultTheme="dark">
-      <div className="min-h-screen bg-background text-foreground flex">
-        <Sidebar currentView={currentView} onNavigate={setCurrentView} />
-        <main className="flex-1 overflow-auto">
-          {renderView()}
-        </main>
-      </div>
+      <ApiProvider>
+        <div className="min-h-screen h-screen bg-background text-foreground flex flex-col">
+          {isElectron && <TitleBar />}
+          <div className="flex flex-1 overflow-hidden">
+            <Sidebar currentView={currentView} onNavigate={setCurrentView} />
+            <main className="flex-1 overflow-auto">
+              {renderView()}
+            </main>
+          </div>
+        </div>
+      </ApiProvider>
     </ThemeProvider>
   );
 };

@@ -1,12 +1,9 @@
-/* QNXtainer Studio Styles */
-
 :root {
   --qnx-red: #ff443b;
   --qnx-red-dark: #e03a32;
   --qnx-red-light: #ff6b64;
 }
 
-/* Global styles */
 body {
   margin: 0;
   padding: 0;
@@ -14,7 +11,6 @@ body {
     Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-/* QNX-themed overrides */
 .text-qnx {
   color: var(--qnx-red);
 }
@@ -27,7 +23,6 @@ body {
   border-color: var(--qnx-red);
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -46,17 +41,56 @@ body {
   background: var(--qnx-red);
 }
 
-/* Legacy styles - removing to avoid conflicts with Tailwind */
-/* 
-.container {
-    text-align: center;
-    padding: 20px;
-    background-color: #f0f0f0;
+.app-drag {
+  -webkit-app-region: drag;
 }
-  
-.title {
-    color: #333;
-    font-size: 2rem;
-    font-weight: bold;
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
 }
-*/
+
+.select-none {
+  user-select: none;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Main content scrolling */
+main {
+  position: relative;
+  height: 100%;
+}
+
+.overflow-y-auto {
+  overflow-y: auto !important;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.transition-colors {
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
