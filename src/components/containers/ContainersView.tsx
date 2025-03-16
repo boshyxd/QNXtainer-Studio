@@ -34,8 +34,6 @@ interface NewApp {
   name: string;
   description: string;
   file: File | null;
-  buildCommand: string;
-  runCommand: string;
   sourceCode: string;
 }
 
@@ -71,8 +69,6 @@ const ContainersView: React.FC = () => {
     name: '',
     description: '',
     file: null,
-    buildCommand: '',
-    runCommand: '',
     sourceCode: ''
   });
   const [uploadMethod, setUploadMethod] = useState<'tarball' | 'editor'>('tarball');
@@ -238,8 +234,6 @@ const ContainersView: React.FC = () => {
         name: '',
         description: '',
         file: null,
-        buildCommand: '',
-        runCommand: '',
         sourceCode: ''
       });
       setFormErrors({});
@@ -609,34 +603,6 @@ const ContainersView: React.FC = () => {
                         {formErrors.file}
                       </p>
                     )}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="build-command" className="text-right">
-                    Build Command
-                  </Label>
-                  <div className="col-span-3">
-                    <Input 
-                      id="build-command" 
-                      placeholder="e.g., make or gcc -o myapp main.c" 
-                      value={newApp.buildCommand}
-                      onChange={(e) => setNewApp({...newApp, buildCommand: e.target.value})}
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="run-command" className="text-right">
-                    Run Command
-                  </Label>
-                  <div className="col-span-3">
-                    <Input 
-                      id="run-command" 
-                      placeholder="e.g., ./myapp" 
-                      value={newApp.runCommand}
-                      onChange={(e) => setNewApp({...newApp, runCommand: e.target.value})}
-                    />
                   </div>
                 </div>
               </div>
