@@ -45,7 +45,7 @@ const ImagesView: React.FC = () => {
         created: new Date(image.created_at).toLocaleString(),
         description: `${image.name}:${image.tag} container image`
       }));
-      
+
       setImages([qnxImage, ...apiImages]);
     } else {
       setImages([qnxImage]);
@@ -54,7 +54,7 @@ const ImagesView: React.FC = () => {
 
   const handleUploadImage = async () => {
     if (!uploadFile || !imageName) return;
-    
+
     try {
       await uploadImage(uploadFile, imageName, imageTag);
       setIsUploadDialogOpen(false);
@@ -73,13 +73,13 @@ const ImagesView: React.FC = () => {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      
+
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">System Images</h1>
           <p className="text-muted-foreground">QNX base image and custom container images</p>
         </div>
-        
+
         <Button onClick={() => setIsUploadDialogOpen(true)}>
           Upload Image
         </Button>
@@ -87,9 +87,9 @@ const ImagesView: React.FC = () => {
 
       <Alert className="mb-6">
         <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-          <line x1="12" y1="9" x2="12" y2="13"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
         <AlertTitle>System Image</AlertTitle>
         <AlertDescription>
@@ -108,6 +108,7 @@ const ImagesView: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Tag</TableHead>
                 <TableHead>Size</TableHead>
@@ -118,6 +119,7 @@ const ImagesView: React.FC = () => {
             <TableBody>
               {images.map((image) => (
                 <TableRow key={image.id}>
+                  <TableCell>{image.id}</TableCell>
                   <TableCell className="font-medium">{image.name}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{image.tag}</Badge>
@@ -125,9 +127,9 @@ const ImagesView: React.FC = () => {
                   <TableCell>{image.size}</TableCell>
                   <TableCell>{image.created}</TableCell>
                   <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setIsInfoDialogOpen(true)}
                     >
                       Info
@@ -224,7 +226,7 @@ const ImagesView: React.FC = () => {
             <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleUploadImage}
               disabled={!uploadFile || !imageName}
             >

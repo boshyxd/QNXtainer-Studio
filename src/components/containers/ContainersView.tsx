@@ -38,12 +38,12 @@ interface NewContainer {
 
 const ContainersView: React.FC = () => {
   const { serverState, isConnected, isLoading, error, startContainer, stopContainer, createContainer } = useQNXtainerApi();
-  
+
   const [containers, setContainers] = useState<Container[]>(() => {
     const savedContainers = localStorage.getItem('qnxtainer-containers');
     return savedContainers ? JSON.parse(savedContainers) : initialContainers;
   });
-  
+
   useEffect(() => {
     if (serverState && serverState.containers) {
       const apiContainers = serverState.containers.map(container => ({
@@ -52,14 +52,14 @@ const ContainersView: React.FC = () => {
         status: container.status as 'running' | 'stopped',
         cpu: container.cpu,
         memory: container.memory,
-        created: new Date().toLocaleDateString(),
+        created: new Date().toLocaleString(),
         appType: container.image ? `${container.image.name}:${container.image.tag}` : 'QNX Container'
       }));
-      
+
       setContainers(apiContainers);
     }
   }, [serverState]);
-  
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'running' | 'stopped'>('all');
   const [selectedContainers, setSelectedContainers] = useState<string[]>([]);
@@ -84,9 +84,9 @@ const ContainersView: React.FC = () => {
     const handleOpenDialog = () => {
       setIsCreateDialogOpen(true);
     };
-    
+
     window.addEventListener('open-container-dialog', handleOpenDialog);
-    
+
     return () => {
       window.removeEventListener('open-container-dialog', handleOpenDialog);
     };
@@ -122,7 +122,7 @@ const ContainersView: React.FC = () => {
     setTimeout(() => {
       switch (action) {
         case 'start':
-          setContainers(containers.map(container => 
+          setContainers(containers.map(container =>
             selectedContainers.includes(container.id) && container.status === 'stopped'
               ? { ...container, status: 'running', cpu: Math.floor(Math.random() * 20) + 5, memory: Math.floor(Math.random() * 200) + 50 }
               : container
@@ -130,7 +130,7 @@ const ContainersView: React.FC = () => {
           toast.success(`Started ${selectedContainers.length} container(s)`);
           break;
         case 'stop':
-          setContainers(containers.map(container => 
+          setContainers(containers.map(container =>
             selectedContainers.includes(container.id) && container.status === 'running'
               ? { ...container, status: 'stopped', cpu: 0, memory: 0 }
               : container
@@ -138,7 +138,7 @@ const ContainersView: React.FC = () => {
           toast.success(`Stopped ${selectedContainers.length} container(s)`);
           break;
         case 'restart':
-          setContainers(containers.map(container => 
+          setContainers(containers.map(container =>
             selectedContainers.includes(container.id)
               ? { ...container, status: 'running', cpu: Math.floor(Math.random() * 20) + 5, memory: Math.floor(Math.random() * 200) + 50 }
               : container
@@ -146,7 +146,7 @@ const ContainersView: React.FC = () => {
           toast.success(`Restarted ${selectedContainers.length} container(s)`);
           break;
         case 'kill':
-          setContainers(containers.map(container => 
+          setContainers(containers.map(container =>
             selectedContainers.includes(container.id)
               ? { ...container, status: 'stopped', cpu: 0, memory: 0 }
               : container
@@ -174,13 +174,13 @@ const ContainersView: React.FC = () => {
       file?: string;
       sourceCode?: string;
     } = {};
-    
+
     if (!newContainer.name.trim()) {
       errors.name = "Container name is required";
     } else if (!/^[a-zA-Z0-9_-]+$/.test(newContainer.name)) {
       errors.name = "Name can only contain letters, numbers, hyphens and underscores";
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -189,7 +189,7 @@ const ContainersView: React.FC = () => {
     if (!validateForm()) {
       return;
     }
-    
+
     try {
       if (isConnected && serverState && serverState.images.length > 0) {
         const imageId = serverState.images[0].id;
@@ -205,11 +205,11 @@ const ContainersView: React.FC = () => {
           created: new Date().toLocaleDateString(),
           appType: uploadMethod === 'editor' ? 'C Program' : 'Container Image'
         };
-        
+
         setContainers(prev => [...prev, newCont]);
         toast.success(`Container "${newContainer.name}" created (mock)`);
       }
-      
+
       setIsCreateDialogOpen(false);
       setNewContainer({
         name: '',
@@ -222,15 +222,15 @@ const ContainersView: React.FC = () => {
     }
   };
 
-  const hasRunningSelected = selectedContainers.some(id => 
+  const hasRunningSelected = selectedContainers.some(id =>
     containers.find(c => c.id === id)?.status === 'running'
   );
-  
-  const hasStoppedSelected = selectedContainers.some(id => 
+
+  const hasStoppedSelected = selectedContainers.some(id =>
     containers.find(c => c.id === id)?.status === 'stopped'
   );
 
-  const isPreparedSelected = selectedContainers.some(id => 
+  const isPreparedSelected = selectedContainers.some(id =>
     containers.find(c => c.id === id)?.status === 'prepared'
   );
 
@@ -241,10 +241,10 @@ const ContainersView: React.FC = () => {
         await startContainer(containerId);
         toast.success(`Container ${containerId} started successfully`);
       } else {
-        setContainers(prevContainers => 
-          prevContainers.map(container => 
-            container.id === containerId 
-              ? { ...container, status: 'running', cpu: 5, memory: 64 } 
+        setContainers(prevContainers =>
+          prevContainers.map(container =>
+            container.id === containerId
+              ? { ...container, status: 'running', cpu: 5, memory: 64 }
               : container
           )
         );
@@ -254,17 +254,17 @@ const ContainersView: React.FC = () => {
       toast.error(`Failed to start container: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
-  
+
   const handleStopContainer = async (containerId: string) => {
     try {
       if (isConnected) {
         await stopContainer(containerId);
         toast.success(`Container ${containerId} stopped successfully`);
       } else {
-        setContainers(prevContainers => 
-          prevContainers.map(container => 
-            container.id === containerId 
-              ? { ...container, status: 'stopped', cpu: 0, memory: 0 } 
+        setContainers(prevContainers =>
+          prevContainers.map(container =>
+            container.id === containerId
+              ? { ...container, status: 'stopped', cpu: 0, memory: 0 }
               : container
           )
         );
@@ -282,13 +282,13 @@ const ContainersView: React.FC = () => {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      
+
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Containers</h1>
           <p className="text-muted-foreground">Manage your QNX containers</p>
         </div>
-        
+
         <div className="flex space-x-2">
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
@@ -297,7 +297,7 @@ const ContainersView: React.FC = () => {
             <PlusCircle className="h-4 w-4 mr-2" />
             New Container
           </Button>
-          
+
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
@@ -328,9 +328,9 @@ const ContainersView: React.FC = () => {
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <Button 
-          size="sm" 
-          variant="outline" 
+        <Button
+          size="sm"
+          variant="outline"
           className="bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20 hover:text-green-600"
           disabled={!(!hasRunningSelected || isPreparedSelected) || isLoading}
           onClick={() => handleStartContainer(selectedContainers[0])}
@@ -340,9 +340,9 @@ const ContainersView: React.FC = () => {
           </svg>
           Start
         </Button>
-        <Button 
-          size="sm" 
-          variant="outline" 
+        <Button
+          size="sm"
+          variant="outline"
           className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:text-red-600"
           disabled={!hasRunningSelected || isLoading}
           onClick={() => handleStopContainer(selectedContainers[0])}
@@ -352,9 +352,9 @@ const ContainersView: React.FC = () => {
           </svg>
           Stop
         </Button>
-        <Button 
-          size="sm" 
-          variant="outline" 
+        <Button
+          size="sm"
+          variant="outline"
           className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:text-red-600"
           disabled={(!hasRunningSelected || isPreparedSelected) || isLoading}
           onClick={() => handleAction('kill')}
@@ -364,9 +364,9 @@ const ContainersView: React.FC = () => {
           </svg>
           Kill
         </Button>
-        <Button 
-          size="sm" 
-          variant="outline" 
+        <Button
+          size="sm"
+          variant="outline"
           className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 hover:text-blue-600"
           disabled={!hasRunningSelected || isLoading}
           onClick={() => handleAction('restart')}
@@ -379,9 +379,9 @@ const ContainersView: React.FC = () => {
           </svg>
           Restart
         </Button>
-        <Button 
-          size="sm" 
-          variant="outline" 
+        <Button
+          size="sm"
+          variant="outline"
           className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 hover:text-blue-600"
           disabled={!hasRunningSelected || isLoading}
           onClick={() => handleAction('logs')}
@@ -391,9 +391,9 @@ const ContainersView: React.FC = () => {
           </svg>
           Logs
         </Button>
-        <Button 
-          size="sm" 
-          variant="outline" 
+        <Button
+          size="sm"
+          variant="outline"
           className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:text-red-600"
           disabled={selectedContainers.length === 0 || isLoading}
           onClick={() => handleAction('remove')}
@@ -413,8 +413,8 @@ const ContainersView: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[40px]">
-                  <Checkbox 
-                    checked={selectAll} 
+                  <Checkbox
+                    checked={selectAll}
                     onCheckedChange={handleSelectAll}
                     aria-label="Select all containers"
                     disabled={isLoading}
@@ -431,14 +431,14 @@ const ContainersView: React.FC = () => {
             </TableHeader>
             <TableBody>
               {filteredContainers.map((container) => (
-                <TableRow 
+                <TableRow
                   key={container.id}
                   className={selectedContainers.includes(container.id) ? "bg-muted/50" : ""}
                   onClick={() => !isLoading && handleSelectContainer(container.id)}
                 >
                   <TableCell className="w-[40px]">
-                    <Checkbox 
-                      checked={selectedContainers.includes(container.id)} 
+                    <Checkbox
+                      checked={selectedContainers.includes(container.id)}
                       onCheckedChange={() => handleSelectContainer(container.id)}
                       aria-label={`Select ${container.name}`}
                       onClick={(e) => e.stopPropagation()}
@@ -447,7 +447,7 @@ const ContainersView: React.FC = () => {
                   </TableCell>
                   <TableCell className="font-medium">{container.name}</TableCell>
                   <TableCell>
-                    <Badge 
+                    <Badge
                       variant={container.status === 'running' ? 'default' : 'secondary'}
                       className={container.status === 'running' ? 'bg-green-500 hover:bg-green-600' : 'bg-muted hover:bg-muted/80'}
                     >
@@ -482,7 +482,7 @@ const ContainersView: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
-      
+
       {isLoading && (
         <div className="flex justify-center items-center h-40">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-qnx"></div>
@@ -497,25 +497,25 @@ const ContainersView: React.FC = () => {
               After uploading your C/C++ application image on QNX, you can start it here by giving its id.
             </DialogDescription>
           </DialogHeader>
-          
-          <Tabs defaultValue="tarball" className="w-full" onValueChange={(value) => setUploadMethod(value as 'tarball' | 'editor')}>            
+
+          <Tabs defaultValue="tarball" className="w-full" onValueChange={(value) => setUploadMethod(value as 'tarball' | 'editor')}>
             <TabsContent value="tarball" className="space-y-4 mt-4">
-              
+
               <div className="grid gap-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="app-name" className="text-right">
                     Application Name
                   </Label>
                   <div className="col-span-3 space-y-1">
-                    <Input 
-                      id="app-name" 
-                      placeholder="e.g., hello-world" 
+                    <Input
+                      id="app-name"
+                      placeholder="e.g., hello-world"
                       className={formErrors.name ? "border-red-500" : ""}
                       value={newContainer.name}
                       onChange={(e) => {
-                        setNewContainer({...newContainer, name: e.target.value});
+                        setNewContainer({ ...newContainer, name: e.target.value });
                         if (formErrors.name) {
-                          setFormErrors({...formErrors, name: undefined});
+                          setFormErrors({ ...formErrors, name: undefined });
                         }
                       }}
                     />
@@ -527,17 +527,17 @@ const ContainersView: React.FC = () => {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label htmlFor="app-file" className="text-right pt-2">
                     Image ID
                   </Label>
                   <div className="col-span-3 space-y-1">
-                    <Input 
-                      id="image-id" 
-                      placeholder="ID" 
+                    <Input
+                      id="image-id"
+                      placeholder="ID"
                       value={newContainer.description}
-                      onChange={(e) => setNewContainer({...newContainer, description: e.target.value})}
+                      onChange={(e) => setNewContainer({ ...newContainer, description: e.target.value })}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       See Images for a list of images
@@ -552,32 +552,32 @@ const ContainersView: React.FC = () => {
                 </div>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="editor" className="space-y-4 mt-4">
               <Alert>
                 <AlertDescription>
                   Write or paste your C/C++ code directly. For simple applications only.
                 </AlertDescription>
               </Alert>
-              
-                
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="editor-app-description" className="text-right">
-                    Description
-                  </Label>
-                  <div className="col-span-3">
-                    <Input 
-                      id="editor-app-description" 
-                      placeholder="Optional description" 
-                      value={newContainer.description}
-                      onChange={(e) => setNewContainer({...newContainer, description: e.target.value})}
-                    />
-                  </div>
+
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="editor-app-description" className="text-right">
+                  Description
+                </Label>
+                <div className="col-span-3">
+                  <Input
+                    id="editor-app-description"
+                    placeholder="Optional description"
+                    value={newContainer.description}
+                    onChange={(e) => setNewContainer({ ...newContainer, description: e.target.value })}
+                  />
                 </div>
-                
+              </div>
+
             </TabsContent>
           </Tabs>
-          
+
           <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isLoading}>
               Cancel
