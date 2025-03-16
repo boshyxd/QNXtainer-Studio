@@ -21,7 +21,7 @@ interface UseQNXtainerApiReturn {
   setPollingInterval: (interval: number) => void;
 }
 
-const DEFAULT_POLLING_INTERVAL = 5000;
+const DEFAULT_POLLING_INTERVAL = 10000;
 
 export function useQNXtainerApi(): UseQNXtainerApiReturn {
   const [apiClient, setApiClient] = useState<QNXtainerApiClient | null>(null);

@@ -67,7 +67,7 @@ class QNXtainerApiClient {
         throw new Error(`Server responded with status: ${response.status}`);
       }
       
-      return await response.json();
+      return await JSON.parse(JSON.stringify(response));
     } catch (error) {
       console.error('Failed to upload image:', error);
       throw error;
