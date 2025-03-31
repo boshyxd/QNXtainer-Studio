@@ -31,19 +31,20 @@ export interface ApiConfig {
 
 class QNXtainerApiClient {
   private baseUrl: string;
-  
+
   constructor(config: ApiConfig) {
-    this.baseUrl = `${config.serverUrl}`;
+    this.baseUrl = `${config.serverUrl}:${config.port}`;
   }
 
   async getState(): Promise<ServerState> {
     try {
+      console.log(this.baseUrl)
       const response = await fetch(`${this.baseUrl}/state`);
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Failed to fetch server state:', error);
@@ -57,16 +58,16 @@ class QNXtainerApiClient {
       formData.append('file', imageFile);
       formData.append('name', imageName);
       formData.append('tag', imageTag);
-      
+
       const response = await fetch(`${this.baseUrl}/upload-image`, {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
-      
+
       return await JSON.parse(JSON.stringify(response));
     } catch (error) {
       console.error('Failed to upload image:', error);
@@ -85,15 +86,15 @@ class QNXtainerApiClient {
         mode: 'cors',
         body: formData,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Server responded with status: ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error) {
-        console.error('Failed to create container:', error);
+      console.error('Failed to create container:', error);
       throw error;
     }
   }
@@ -103,12 +104,12 @@ class QNXtainerApiClient {
       const response = await fetch(`${this.baseUrl}/start-from-image/${imageId}`, {
         method: 'POST',
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Server responded with status: ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Failed to start container from image:', error);
@@ -121,12 +122,12 @@ class QNXtainerApiClient {
       const response = await fetch(`${this.baseUrl}/start/${containerId}`, {
         method: 'POST',
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Server responded with status: ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Failed to start container:', error);
@@ -139,12 +140,12 @@ class QNXtainerApiClient {
       const response = await fetch(`${this.baseUrl}/stop/${containerId}`, {
         method: 'POST',
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Server responded with status: ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Failed to stop container:', error);

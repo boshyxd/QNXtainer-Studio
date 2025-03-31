@@ -1,8 +1,8 @@
 import { ApiConfig } from './index';
 
 const defaultConfig: ApiConfig = {
-  serverUrl: 'https://kontrakti.com',
-  port: 80
+  serverUrl: 'http://192.168.222.110',
+  port: 8080
 };
 
 export function loadApiConfig(): ApiConfig {
@@ -14,7 +14,7 @@ export function loadApiConfig(): ApiConfig {
   } catch (error) {
     console.error('Failed to load API config from localStorage:', error);
   }
-  
+
   return defaultConfig;
 }
 

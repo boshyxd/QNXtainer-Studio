@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import QNXtainerApiClient, { ServerState, Container, Image } from '../../api_client';
 import { loadApiConfig, saveApiConfig } from '../../api_client/config';
 import { ApiConfig } from '../../api_client';
+import { useInterval } from './useInterval';
 
 interface UseQNXtainerApiReturn {
   isConnected: boolean;
@@ -32,16 +33,14 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
   const [serverState, setServerState] = useState<ServerState | null>(null);
   const [pollingEnabled, setPollingEnabled] = useState<boolean>(true);
   const [pollingInterval, setPollingInterval] = useState<number>(DEFAULT_POLLING_INTERVAL);
-  
-  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const client = new QNXtainerApiClient(apiConfig);
     setApiClient(client);
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     client.getState()
       .then(state => {
         setServerState(state);
@@ -58,10 +57,10 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
 
   const refreshState = useCallback(async () => {
     if (!apiClient) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const state = await apiClient.getState();
       setServerState(state);
@@ -74,26 +73,7 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
     }
   }, [apiClient]);
 
-  useEffect(() => {
-    if (pollingTimerRef.current) {
-      clearInterval(pollingTimerRef.current);
-      pollingTimerRef.current = null;
-    }
-    
-    if (pollingEnabled && apiClient) {
-      pollingTimerRef.current = setInterval(() => {
-        if (!isLoading) {
-          refreshState();
-        }
-      }, pollingInterval);
-    }
-    
-    return () => {
-      if (pollingTimerRef.current) {
-        clearInterval(pollingTimerRef.current);
-      }
-    };
-  }, [pollingEnabled, pollingInterval, apiClient, refreshState, isLoading]);
+  useInterval(refreshState, pollingInterval);
 
   const updateApiConfig = useCallback((newConfig: ApiConfig) => {
     saveApiConfig(newConfig);
@@ -102,10 +82,10 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
 
   const uploadImage = useCallback(async (file: File, name: string, tag: string = 'latest') => {
     if (!apiClient) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       await apiClient.uploadImage(file, name, tag);
       await refreshState();
@@ -118,10 +98,10 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
 
   const createContainer = useCallback(async (imageId: string, name: string) => {
     if (!apiClient) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       await apiClient.createContainer(imageId, name);
       await refreshState();
@@ -134,10 +114,10 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
 
   const startContainer = useCallback(async (imageId: string) => {
     if (!apiClient) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       await apiClient.startContainer(imageId);
       await refreshState();
@@ -150,10 +130,10 @@ export function useQNXtainerApi(): UseQNXtainerApiReturn {
 
   const stopContainer = useCallback(async (containerId: string) => {
     if (!apiClient) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       await apiClient.stopContainer(containerId);
       await refreshState();
